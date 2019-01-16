@@ -1,5 +1,6 @@
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import java.io.File
 import java.net.URI
 import javax.ws.rs.client.ClientBuilder
 import javax.ws.rs.core.UriBuilder
@@ -18,19 +19,30 @@ class FetchData {
         return uri.build()
     }
 
-    fun fetchFromUri(uri: URI){
+    fun fetchFromUri(uri: URI) : JsonObject{
         val client = ClientBuilder.newClient()
         val response = client.target(uri).request("application/json").get()
 
         val result = response.readEntity(String::class.java)
-        println("Result as string : $result")
 
         val parser = JsonParser()
-        val json = parser.parse(result) as JsonObject
-        val temperature = json.get("data").asJsonObject.get("children").asJsonArray.get(0).asJsonObject.get("data").asJsonObject.get("title").asString
-
-        println(temperature)
+        return parser.parse(result) as JsonObject
     }
+
+    fun writeToFile(input: JsonObject){
+
+        var filename = "src/main/resources/"
+        filename += input.get("data").asJsonObject.get("children").asJsonArray[0].asJsonObject.get("data").asJsonObject.get("subreddit").asString + ".txt"
+        val myFile = File(filename)
+
+        myFile.bufferedWriter().use { out ->
+            input.get("data").asJsonObject.get("children").asJsonArray.forEach {
+                out.write(it.asJsonObject.get("data").asJsonObject.get("title").asString.trim() + "\n")
+            }
+        }
+        println("File filled!")
+    }
+
 }
 
 fun main(args: Array<String>) {
@@ -40,5 +52,5 @@ fun main(args: Array<String>) {
 //    println(fetchData.buildUri("https://api.met.no/weatherapi/textforecast/1.6", Pair("forecast", "land")))
 //    println(fetchData.buildUri("https://api.met.no/weatherapi/textforecast/1.6"))
 
-    fetchData.fetchFromUri(fetchData.buildUri("https://www.reddit.com/r/leagueoflegends/top/.json", Pair("limit", "5"), Pair("t", "day")))
+    fetchData.writeToFile(fetchData.fetchFromUri(fetchData.buildUri("https://www.reddit.com/r/leagueoflegends/top/.json", Pair("limit", "100"), Pair("t", "day"))))
 }
