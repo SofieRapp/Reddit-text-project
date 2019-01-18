@@ -3,6 +3,7 @@ import com.google.gson.JsonParser
 import java.io.File
 import java.net.URI
 import javax.ws.rs.client.ClientBuilder
+import javax.ws.rs.core.Response
 import javax.ws.rs.core.UriBuilder
 
 class FetchData {
@@ -21,7 +22,9 @@ class FetchData {
 
     fun fetchFromUri(uri: URI) : JsonObject{
         val client = ClientBuilder.newClient()
-        val response = client.target(uri).request("application/json").get()
+
+        val response = client.target(uri).request("application/json")
+                .header("user-agent", "random-title-fetcher").get()
 
         val result = response.readEntity(String::class.java)
 
@@ -31,8 +34,9 @@ class FetchData {
 
     fun writeToFile(input: JsonObject){
 
+        if (input.isJsonNull) return
         var filename = "src/main/resources/"
-        filename += input.get("data").asJsonObject.get("children").asJsonArray[0].asJsonObject.get("data").asJsonObject.get("subreddit").asString + ".txt"
+        filename += input.get("data").asJsonObject.get("children").asJsonArray[0].asJsonObject.get("data").asJsonObject.get("subreddit").asString.toLowerCase() + ".txt"
         val myFile = File(filename)
 
         myFile.bufferedWriter().use { out ->
@@ -52,5 +56,13 @@ fun main(args: Array<String>) {
 //    println(fetchData.buildUri("https://api.met.no/weatherapi/textforecast/1.6", Pair("forecast", "land")))
 //    println(fetchData.buildUri("https://api.met.no/weatherapi/textforecast/1.6"))
 
-    fetchData.writeToFile(fetchData.fetchFromUri(fetchData.buildUri("https://www.reddit.com/r/leagueoflegends/top/.json", Pair("limit", "100"), Pair("t", "day"))))
+    fetchData.writeToFile(
+        fetchData.fetchFromUri(
+            fetchData.buildUri(
+                "https://www.reddit.com/r/leagueoflegends/top/.json", Pair("limit", "100"), Pair("t", "day"))))
+
+    fetchData.writeToFile(
+            fetchData.fetchFromUri(
+                    fetchData.buildUri(
+                            "https://www.reddit.com/r/overwatch/top/.json", Pair("limit", "100"), Pair("t", "day"))))
 }
